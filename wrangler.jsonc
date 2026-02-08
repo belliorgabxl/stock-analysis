@@ -16,7 +16,33 @@
 	},
 	"compatibility_flags": [
 		"nodejs_compat"
-	]
+	],
+	"triggers": {
+		"crons": [
+			"* * * * *"
+		]
+	},
+	"kv_namespaces": [
+		{
+			"binding": "STOCK_STATE",
+			"id": "45bbd657363241da8692669991483678",
+			"remote": true
+		}
+	],
+	"vars": {
+		"WATCHLIST": "EOSE,ASTS,BBAI,RKLB,NVDA,O,LAES,RR,IONQ,QUBT,RGTI,BURU",
+
+		// ตั้งเป้าราคาแบบต่อหุ้น (ปรับเองได้)
+		// รูปแบบ: SYMBOL:below=xxx,above=yyy;SYMBOL:below=...
+		"PRICE_LEVELS": "EOSE:below=10,above=18;ASTS:below=75,above=110;BBAI:below=4.2,above=6;RKLB:below=50,above=80;NVDA:below=165,above=200;O:below=57,above=64;LAES:below=4,above=5;RR:below=3,above=4.5;IONQ:below=34,above=55;QUBT:below=9,above=11;RGTI:below=17,above=20;BURU:below=0.15,above=0.5",
+
+		// % จากราคาปิดวันก่อน (prevDaily close)
+		"PCT_THRESHOLD": "10",
+
+		// กันแจ้งเตือนถี่เกิน (นาที)
+		"ALERT_COOLDOWN_MINUTES": "30"
+	}
+
 	/**
 	 * Smart Placement
 	 * https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
