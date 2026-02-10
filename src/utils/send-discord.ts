@@ -135,6 +135,8 @@ export async function runAlertsOnce(
       state.lastSentAt ??= {};
       state.lastCond ??= {};
 
+      let dirty = false;
+
       const rules = priceLevels[symbol] ?? {};
       detail.rules = rules;
 
@@ -165,12 +167,19 @@ export async function runAlertsOnce(
 
         if (cond && !prev && now - last >= cooldownMs) {
           await sendDiscord(env.DISCORD_WEBHOOK_URL, { content: message });
-          state.lastSentAt![key] = now;
+          if ((state.lastSentAt?.[key] ?? 0) !== now) {
+            state.lastSentAt![key] = now;
+            dirty = true;
+          }
+
           sent++;
           sentKeys.push(key);
         }
 
-        state.lastCond![key] = cond;
+        if ((state.lastCond?.[key] ?? false) !== cond) {
+          state.lastCond![key] = cond;
+          dirty = true;
+        }
       };
 
       const priceText = `$${currentPrice.toFixed(2)}`;
