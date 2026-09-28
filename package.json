@@ -4,13 +4,16 @@
 	"scripts": {
 		"dev": "wrangler dev",
 		"deploy": "wrangler deploy --minify",
-		"cf-typegen": "wrangler types --env-interface CloudflareBindings"
+		"cf-typegen": "wrangler types --env-interface CloudflareBindings",
+		"typecheck": "tsc --noEmit",
+		"backtest": "esbuild scripts/backtest.ts --bundle --platform=node --format=esm --outfile=.wrangler/backtest.mjs --log-level=warning && node .wrangler/backtest.mjs"
 	},
 	"dependencies": {
 		"hono": "^4.11.8"
 	},
 	"devDependencies": {
 		"@types/node": "^25.2.2",
+		"typescript": "^5.9.3",
 		"wrangler": "^4.63.0"
 	}
 }
