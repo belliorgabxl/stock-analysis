@@ -9,7 +9,9 @@
 		"backtest": "esbuild scripts/backtest.ts --bundle --platform=node --format=esm --outfile=.wrangler/backtest.mjs --log-level=warning && node .wrangler/backtest.mjs"
 	},
 	"dependencies": {
-		"hono": "^4.11.8"
+		"@anthropic-ai/sdk": "^0.131.0",
+		"hono": "^4.11.8",
+		"zod": "^4.6.5"
 	},
 	"devDependencies": {
 		"@types/node": "^25.2.2",

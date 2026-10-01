@@ -4,6 +4,8 @@ export interface Env {
   ALPACA_API_KEY: string;
   ALPACA_API_SECRET: string;
   TRIGGER_TOKEN: string;
+  /** ไม่ใส่ = ไม่ใช้ AI (แจ้งเตือนทำงานปกติ) */
+  ANTHROPIC_API_KEY?: string;
 
   WATCHLIST: string;
   /** SYMBOL:below=xxx,above=yyy;SYMBOL:... */
@@ -19,4 +21,9 @@ export interface Env {
   TREND_Z?: string;
   MIN_TREND_PCT?: string;
   VOLUME_RATIO?: string;
+
+  /** โมเดล Claude ที่ใช้วิเคราะห์ (ค่าเริ่มต้น claude-opus-5-5) */
+  AI_MODEL?: string;
+  /** 0 = AI แค่อธิบาย ไม่กรอง; 2 = ตัดหุ้นที่ AI ให้คะแนน 1 (noise) ทิ้ง ฯลฯ */
+  AI_MIN_IMPORTANCE?: string;
 }

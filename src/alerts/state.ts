@@ -1,7 +1,25 @@
+import type { Driver } from "../ai/analyst";
 import type { LevelState, Signal } from "../analysis/signals";
 import { daysBetween } from "../lib/time";
 
 export type SentEntry = { at: number; date: string; mag: number };
+
+/** บันทึกการประเมินของ AI — ไว้เทียบกับราคาจริงภายหลัง เพื่อดูว่า AI ประเมินแม่นแค่ไหน */
+export type AiLogEntry = {
+  date: string;
+  slot: string;
+  symbol: string;
+  price: number;
+  changePct: number;
+  signals: string[];
+  driver: Driver;
+  importance: number;
+  why: string;
+  /** ถูกตัดทิ้งเพราะ importance ต่ำกว่า AI_MIN_IMPORTANCE */
+  dropped: boolean;
+};
+
+const AI_LOG_MAX = 300;
 
 /**
  * เก็บทุกอย่างใน KV key เดียว และเขียนแค่ตอนจบแต่ละรอบ (~2 ครั้ง/วัน)
@@ -15,12 +33,13 @@ export type AlertState = {
   /** `${symbol}|${signalId}` -> ครั้งล่าสุดที่เตือน */
   sent: Record<string, SentEntry>;
   levels: Record<string, LevelState>;
+  aiLog: AiLogEntry[];
 };
 
 export const STATE_KEY = "state:v2";
 
 export function emptyState(): AlertState {
-  return { version: 2, runs: {}, sent: {}, levels: {} };
+  return { version: 2, runs: {}, sent: {}, levels: {}, aiLog: [] };
 }
 
 export async function loadState(kv: KVNamespace): Promise<AlertState> {
@@ -67,4 +86,5 @@ export function pruneState(state: AlertState, now: number): void {
   for (const [k, at] of Object.entries(state.runs)) {
     if (daysBetween(at, now) > 7) delete state.runs[k];
   }
+  if (state.aiLog.length > AI_LOG_MAX) state.aiLog = state.aiLog.slice(-AI_LOG_MAX);
 }

@@ -22,6 +22,19 @@ Cloudflare Worker แจ้งเตือนหุ้น US เข้า Discor
 - **ตัด SMA200** — ต้องอยู่อีกฝั่งมา 10 วันแล้วทะลุชัดเจน (กันเลียเส้น)
 - **เป้าราคา** (`PRICE_LEVELS`) — เตือนตอนราคา *เคลื่อนเข้า* โซน มี hysteresis ตามความผันผวน กันแกว่งรอบเป้าแล้วเตือนรัว
 
+### AI ผู้ช่วยวิเคราะห์ (Claude)
+
+ถ้าตั้ง secret `ANTHROPIC_API_KEY` ไว้ ทุกรอบที่มีสัญญาณระบบจะเรียก Claude **1 ครั้ง** ให้:
+
+- อธิบายว่าหุ้นขยับเพราะอะไร (จากข่าวล่าสุด + การขยับของหุ้นตัวอื่นใน watchlist)
+- จัดประเภทปัจจัย (ข่าวบริษัท / งบ / ตามกลุ่ม / ตามตลาด / เทคนิค / ไม่ชัดเจน)
+- ให้คะแนนความสำคัญ ★1–5 และบอกสิ่งที่ควรจับตาต่อ
+
+ถ้าไม่มี key หรือเรียก AI ไม่สำเร็จ การแจ้งเตือนยังทำงานตามปกติ
+
+ระบบเก็บการประเมินของ AI ไว้ใน state (`aiLog`, 300 รายการล่าสุด) เพื่อเอาไปเทียบกับราคาจริงภายหลัง
+เมื่อมั่นใจแล้วค่อยตั้ง `AI_MIN_IMPORTANCE=2` ให้ AI ช่วยตัดสัญญาณที่เป็น noise ทิ้ง
+
 ### กันเตือนซ้ำ
 
 - สัญญาณเดียวกันเตือนวันละครั้ง (รอบปิดตลาดจะเตือนซ้ำเฉพาะถ้ารุนแรงขึ้นมาก)
@@ -42,8 +55,10 @@ Cloudflare Worker แจ้งเตือนหุ้น US เข้า Discor
 | `MIN_MOVE_PCT` | `3` | |
 | `TREND_Z`, `MIN_TREND_PCT`, `VOLUME_RATIO` | `2.5`, `10`, `3` | |
 | `ALPACA_FEED` | `sip` | `iex` ถ้าต้องการข้อมูล real-time (แต่แม่นน้อยกว่า) |
+| `AI_MODEL` | `claude-opus-5-5` | |
+| `AI_MIN_IMPORTANCE` | `0` | `0` = AI แค่อธิบาย, `2` = ตัด ★1 ทิ้ง |
 
-Secrets (`wrangler secret put ...` / `.dev.vars` ตอน dev): `DISCORD_WEBHOOK_URL`, `ALPACA_API_KEY`, `ALPACA_API_SECRET`, `TRIGGER_TOKEN`
+Secrets (`wrangler secret put ...` / `.dev.vars` ตอน dev): `DISCORD_WEBHOOK_URL`, `ALPACA_API_KEY`, `ALPACA_API_SECRET`, `TRIGGER_TOKEN`, `ANTHROPIC_API_KEY` (ไม่บังคับ)
 
 ## ใช้งาน
 

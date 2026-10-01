@@ -1,3 +1,4 @@
+import { assessAlerts, type AiResult } from "../ai/analyst";
 import type { Bar } from "../analysis/signals";
 import { loadConfig, parseSymbols } from "../config";
 import { fetchDailyBars, fetchNews, type NewsItem } from "../lib/alpaca";
@@ -74,14 +75,44 @@ export async function runAlerts(env: Env, opts: RunOptions = {}) {
       alerts.map((a) => a.symbol),
       env,
       new Date(now.getTime() - 36 * 3_600_000),
+      5,
     ).catch((err) => {
       console.warn("[news] failed", err);
       return {};
     });
   }
 
-  const payload = alerts.length
-    ? buildMessage(alerts, news, { slot, date: evalDate, feed, asOf })
+  // AI อธิบายสาเหตุ + ให้คะแนนความสำคัญ (ไม่มี key หรือเรียกไม่สำเร็จ = แจ้งเตือนแบบเดิม)
+  let ai: AiResult | null = null;
+  if (alerts.length && env.ANTHROPIC_API_KEY) {
+    ai = await assessAlerts(env.ANTHROPIC_API_KEY, cfg.ai.model, alerts, news, metrics, evalDate);
+  }
+
+  const isDropped = (symbol: string) => {
+    const imp = ai?.assessments[symbol]?.importance;
+    return cfg.ai.minImportance > 0 && imp != null && imp < cfg.ai.minImportance;
+  };
+  const toSend = alerts.filter((a) => !isDropped(a.symbol));
+
+  for (const a of alerts) {
+    const x = ai?.assessments[a.symbol];
+    if (!x) continue;
+    workState.aiLog.push({
+      date: evalDate,
+      slot,
+      symbol: a.symbol,
+      price: a.metrics.price,
+      changePct: Number(a.metrics.changePct.toFixed(2)),
+      signals: a.signals.map((s) => s.id),
+      driver: x.driver,
+      importance: x.importance,
+      why: x.why,
+      dropped: isDropped(a.symbol),
+    });
+  }
+
+  const payload = toSend.length
+    ? buildMessage(toSend, news, { slot, date: evalDate, feed, asOf }, ai)
     : null;
 
   if (!opts.dryRun) {
@@ -98,10 +129,13 @@ export async function runAlerts(env: Env, opts: RunOptions = {}) {
     feed,
     asOf: asOf.toISOString(),
     sent: Boolean(payload && !opts.dryRun),
+    ai: ai ? { model: ai.model, marketNote: ai.marketNote } : env.ANTHROPIC_API_KEY ? "failed" : "disabled",
     alerts: alerts.map((a) => ({
       symbol: a.symbol,
       score: Number(a.score.toFixed(2)),
       signals: a.signals.map((s) => s.text),
+      ai: ai?.assessments[a.symbol],
+      dropped: isDropped(a.symbol),
     })),
     watchlist: Object.fromEntries(
       Object.entries(metrics).map(([s, m]) => [

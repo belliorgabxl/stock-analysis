@@ -94,13 +94,14 @@ export async function fetchDailyBars(
   return { bars: out, feed, asOf };
 }
 
-export type NewsItem = { headline: string; url: string; createdAt: string; source: string };
+export type NewsItem = { headline: string; summary: string; url: string; createdAt: string; source: string };
 
 export async function fetchNews(
   symbols: string[],
   env: Env,
   since: Date,
   perSymbol = 2,
+  until?: Date,
 ): Promise<Record<string, NewsItem[]>> {
   const out: Record<string, NewsItem[]> = {};
   if (!symbols.length) return out;
@@ -108,12 +109,13 @@ export async function fetchNews(
   const url = new URL(`${DATA_URL}/v1beta1/news`);
   url.searchParams.set("symbols", symbols.join(","));
   url.searchParams.set("start", since.toISOString());
+  if (until) url.searchParams.set("end", until.toISOString());
   url.searchParams.set("sort", "desc");
   url.searchParams.set("limit", "50");
   url.searchParams.set("exclude_contentless", "false");
 
   const data = await getJson<{
-    news?: Array<{ headline: string; url: string; created_at: string; source: string; symbols: string[] }>;
+    news?: Array<{ headline: string; summary?: string; url: string; created_at: string; source: string; symbols: string[] }>;
   }>(url, env);
 
   const wanted = new Set(symbols);
@@ -124,7 +126,13 @@ export async function fetchNews(
       if (!wanted.has(s)) continue;
       const list = (out[s] ??= []);
       if (list.length < perSymbol) {
-        list.push({ headline: n.headline, url: n.url, createdAt: n.created_at, source: n.source });
+        list.push({
+          headline: n.headline,
+          summary: (n.summary ?? "").replace(/\s+/g, " ").trim(),
+          url: n.url,
+          createdAt: n.created_at,
+          source: n.source,
+        });
       }
     }
   }

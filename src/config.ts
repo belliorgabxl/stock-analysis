@@ -3,12 +3,15 @@ import type { Feed } from "./lib/alpaca";
 import type { Slot } from "./lib/time";
 import type { Env } from "./model/config-env";
 
+export const DEFAULT_AI_MODEL = "claude-opus-5-5";
+
 export type Config = {
   symbols: string[];
   priceLevels: Record<string, LevelRules>;
   slots: Slot[];
   feed: Feed;
   thresholds: Thresholds;
+  ai: { model: string; minImportance: number };
 };
 
 export function parseSymbols(input: string | undefined): string[] {
@@ -65,6 +68,10 @@ export function loadConfig(env: Env): Config {
       minTrendPct: num(env.MIN_TREND_PCT, DEFAULT_THRESHOLDS.minTrendPct),
       volumeRatio: num(env.VOLUME_RATIO, DEFAULT_THRESHOLDS.volumeRatio),
       volumeMinZ: DEFAULT_THRESHOLDS.volumeMinZ,
+    },
+    ai: {
+      model: env.AI_MODEL?.trim() || DEFAULT_AI_MODEL,
+      minImportance: num(env.AI_MIN_IMPORTANCE, 0),
     },
   };
 }

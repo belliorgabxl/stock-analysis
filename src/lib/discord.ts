@@ -1,3 +1,4 @@
+import type { AiResult, Assessment, Driver } from "../ai/analyst";
 import { fmtPrice, type Metrics } from "../analysis/signals";
 import type { SymbolAlert } from "../alerts/evaluate";
 import type { Feed, NewsItem } from "./alpaca";
@@ -18,6 +19,16 @@ export async function sendDiscord(webhookUrl: string, payload: unknown) {
 }
 
 const MAX_EMBEDS = 10; // ข้อจำกัดของ Discord
+const NEWS_SHOWN = 2;
+
+const DRIVER_TH: Record<Driver, string> = {
+  company_news: "ข่าวบริษัท",
+  earnings: "งบการเงิน",
+  sector: "ขยับตามกลุ่ม",
+  market: "ขยับตามตลาด",
+  technical: "ปัจจัยทางเทคนิค",
+  unknown: "ไม่ชัดเจน",
+};
 const GREEN = 0x2ecc71;
 const RED = 0xe74c3c;
 
@@ -45,14 +56,20 @@ function contextLine(m: Metrics): string {
   return parts.join(" · ");
 }
 
-function embedFor(a: SymbolAlert, news: NewsItem[]) {
+function embedFor(a: SymbolAlert, news: NewsItem[], ai?: Assessment) {
   const m = a.metrics;
   const up = a.signals.reduce((s, x) => s + x.dir * x.score, 0) >= 0;
-  const lines = a.signals.map((s) => `• ${s.text}`);
+  const lines: string[] = [];
+  if (ai) {
+    const stars = "★".repeat(ai.importance) + "☆".repeat(5 - ai.importance);
+    const watch = ai.watch ? ` · จับตา: ${ai.watch}` : "";
+    lines.push(`🤖 **${ai.why}**`, `-# ปัจจัย: ${DRIVER_TH[ai.driver]} · ความสำคัญ ${stars}${watch}`, "");
+  }
+  lines.push(...a.signals.map((s) => `• ${s.text}`));
   lines.push("", `-# ${contextLine(m)}`);
   if (news.length) {
     lines.push("", "📰 **ข่าวล่าสุด**");
-    for (const n of news) lines.push(`• [${n.headline.slice(0, 140)}](${n.url})`);
+    for (const n of news.slice(0, NEWS_SHOWN)) lines.push(`• [${n.headline.slice(0, 140)}](${n.url})`);
   }
   return {
     title: `${up ? "🟢" : "🔴"} ${a.symbol}  $${fmtPrice(m.price)}  (${pct(m.changePct)})`,
@@ -66,6 +83,7 @@ export function buildMessage(
   alerts: SymbolAlert[],
   news: Record<string, NewsItem[]>,
   ctx: { slot: Slot; date: string; feed: Feed; asOf: Date },
+  ai?: AiResult | null,
 ) {
   const shown = alerts.slice(0, MAX_EMBEDS);
   const rest = alerts.slice(MAX_EMBEDS);
@@ -74,13 +92,14 @@ export function buildMessage(
   const asOf = `${String(t.hour).padStart(2, "0")}:${String(t.minute).padStart(2, "0")} ET`;
 
   let content = `📊 **หุ้นที่มีความเคลื่อนไหวสำคัญ — ${slotName} ${thaiDate(ctx.date)}** (${alerts.length} ตัว, ข้อมูล ${ctx.feed.toUpperCase()} ณ ${asOf})`;
+  if (ai?.marketNote) content += `\n🤖 ${ai.marketNote}`;
   if (rest.length) {
     content += `\nอื่นๆ: ${rest.map((a) => `${a.symbol} ${pct(a.metrics.changePct)}`).join(", ")}`;
   }
 
   return {
     content,
-    embeds: shown.map((a) => embedFor(a, news[a.symbol] ?? [])),
+    embeds: shown.map((a) => embedFor(a, news[a.symbol] ?? [], ai?.assessments[a.symbol])),
     allowed_mentions: { parse: [] },
   };
 }
