@@ -9,11 +9,8 @@ import { evaluateSymbols } from "./evaluate";
 import { loadState, pruneState, saveState } from "./state";
 
 export type RunOptions = {
-  /** ไม่ใส่ = เลือกจากเวลาปัจจุบัน (ใช้กับ cron) */
   slot?: Slot;
-  /** ข้ามการกันซ้ำ/วันหยุด */
   force?: boolean;
-  /** วิเคราะห์อย่างเดียว ไม่ส่ง Discord ไม่บันทึก state */
   dryRun?: boolean;
   symbols?: string[];
   now?: Date;

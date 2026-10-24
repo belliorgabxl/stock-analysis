@@ -6,7 +6,9 @@
 		"deploy": "wrangler deploy --minify",
 		"cf-typegen": "wrangler types --env-interface CloudflareBindings",
 		"typecheck": "tsc --noEmit",
-		"backtest": "esbuild scripts/backtest.ts --bundle --platform=node --format=esm --outfile=.wrangler/backtest.mjs --log-level=warning && node .wrangler/backtest.mjs"
+		"backtest": "esbuild scripts/backtest.ts --bundle --platform=node --format=esm --outfile=.wrangler/backtest.mjs --log-level=warning && node .wrangler/backtest.mjs",
+		"news:dry": "esbuild scripts/news-dry.ts --bundle --platform=node --format=esm --outfile=.wrangler/news-dry.mjs --log-level=warning && node .wrangler/news-dry.mjs",
+		"register-commands": "node scripts/register-commands.mjs"
 	},
 	"dependencies": {
 		"@anthropic-ai/sdk": "^0.131.0",

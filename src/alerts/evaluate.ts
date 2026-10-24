@@ -25,7 +25,6 @@ export type EvaluateInput = {
   volumeFraction: number;
   thresholds: Thresholds;
   priceLevels: Record<string, LevelRules>;
-  /** จะถูกอัปเดต (levels + sent) */
   state: AlertState;
   today: string;
   now: number;
@@ -52,7 +51,6 @@ export function evaluateSymbols(input: EvaluateInput): EvaluateResult {
 
     const rules = input.priceLevels[symbol];
     if (rules) {
-      // แถบ hysteresis กว้างตามความผันผวน: ต้องออกจากโซน ≥ max(3%, 2σ) ก่อนถึงจะเตือนใหม่ได้
       const hysteresisPct = Math.max(3, analysis.metrics.sigmaPct * 2);
       const lv = evalLevels(analysis.metrics.price, rules, state.levels[symbol] ?? {}, hysteresisPct);
       state.levels[symbol] = lv.next;

@@ -35,7 +35,7 @@ const RED = 0xe74c3c;
 const pct = (x: number, digits = 1) => `${x >= 0 ? "+" : ""}${x.toFixed(digits)}%`;
 const THAI_MONTHS = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
 
-function thaiDate(isoDate: string): string {
+export function thaiDate(isoDate: string): string {
   const [y, m, d] = isoDate.split("-").map(Number);
   return `${d} ${THAI_MONTHS[m - 1]} ${y}`;
 }

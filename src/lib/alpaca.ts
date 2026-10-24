@@ -138,3 +138,81 @@ export async function fetchNews(
   }
   return out;
 }
+
+export type RawAlpacaNews = {
+  id: number;
+  headline: string;
+  summary: string;
+  url: string;
+  createdAt: string;
+  source: string;
+  symbols: string[];
+};
+
+/** ข่าวทั้งหมดของ symbols ตั้งแต่ since (ใหม่สุดก่อน) — ใช้กับ News Radar */
+export async function fetchNewsSince(
+  symbols: string[],
+  env: Env,
+  since: Date,
+  maxItems = 100,
+): Promise<RawAlpacaNews[]> {
+  if (!symbols.length) return [];
+  const url = new URL(`${DATA_URL}/v1beta1/news`);
+  url.searchParams.set("symbols", symbols.join(","));
+  url.searchParams.set("start", since.toISOString());
+  url.searchParams.set("sort", "desc");
+  url.searchParams.set("limit", "50");
+  url.searchParams.set("exclude_contentless", "false");
+
+  const out: RawAlpacaNews[] = [];
+  let pageToken: string | null = null;
+  do {
+    if (pageToken) url.searchParams.set("page_token", pageToken);
+    const data: {
+      news?: Array<{ id: number; headline: string; summary?: string; url: string; created_at: string; source: string; symbols: string[] }>;
+      next_page_token?: string | null;
+    } = await getJson(url, env);
+    for (const n of data.news ?? []) {
+      out.push({
+        id: n.id,
+        headline: n.headline,
+        summary: (n.summary ?? "").replace(/\s+/g, " ").trim(),
+        url: n.url,
+        createdAt: n.created_at,
+        source: n.source,
+        symbols: n.symbols,
+      });
+    }
+    pageToken = data.next_page_token ?? null;
+  } while (pageToken && out.length < maxItems);
+  return out.slice(0, maxItems);
+}
+
+export type Snapshot = { price: number; prevClose: number | null; changePct: number | null; at: string };
+
+/**
+ * ราคาล่าสุด (IEX real-time — บัญชีฟรีขอ SIP ล่าสุดไม่ได้)
+ * ใช้เป็นบริบทว่าข่าว "ถูกสะท้อนในราคาไปแล้วหรือยัง" ไม่ได้ใช้คำนวณสัญญาณ
+ */
+export async function fetchSnapshots(symbols: string[], env: Env): Promise<Record<string, Snapshot>> {
+  const out: Record<string, Snapshot> = {};
+  if (!symbols.length) return out;
+  const url = new URL(`${DATA_URL}/v2/stocks/snapshots`);
+  url.searchParams.set("symbols", symbols.join(","));
+  url.searchParams.set("feed", "iex");
+  const data = await getJson<
+    Record<string, { latestTrade?: { p: number; t: string }; dailyBar?: { c: number; t: string }; prevDailyBar?: { c: number } } | null>
+  >(url, env);
+  for (const [sym, s] of Object.entries(data)) {
+    const price = s?.latestTrade?.p ?? s?.dailyBar?.c;
+    if (!s || price == null) continue;
+    const prevClose = s.prevDailyBar?.c ?? null;
+    out[sym] = {
+      price,
+      prevClose,
+      changePct: prevClose ? (price / prevClose - 1) * 100 : null,
+      at: s.latestTrade?.t ?? s.dailyBar?.t ?? "",
+    };
+  }
+  return out;
+}

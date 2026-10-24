@@ -26,7 +26,9 @@
 		// เวลา UTC, จันทร์-ศุกร์ — แต่ละรอบใส่ 2 เวลาเพื่อรองรับ DST ของ US
 		// โค้ดจะรันจริงเฉพาะครั้งที่ตรงกับ 12:00 ET (ระหว่างวัน) และ 16:20 ET (หลังปิดตลาด)
 		// = ตี 11/เที่ยงคืน และ ตี 3/ตี 4 เวลาไทย
-		"crons": ["0 16,17 * * 1-5", "20 20,21 * * 1-5"]
+		// "5,35 * * * *" = News Radar ทุก 30 นาที (โค้ดเลือกเวลาเอง: จ-ศ 04:00-20:59 ET, นอกนั้นทุก 3 ชม.)
+		//   + สรุปข่าวรายวัน ~20:05 ET + Heat Index/ความแม่นของ AI เช้าวันเสาร์ — ถ้าแก้ cron นี้ต้องแก้ NEWS_CRON ใน src/index.ts ด้วย
+		"crons": ["0 16,17 * * 1-5", "20 20,21 * * 1-5", "5,35 * * * *"]
 	},
 	"kv_namespaces": [
 		{
@@ -52,7 +54,26 @@
 
 		// AI (ต้องตั้ง secret ANTHROPIC_API_KEY ก่อน ไม่งั้นข้ามส่วน AI ไป)
 		// 0 = AI อธิบายอย่างเดียว ไม่ตัดอะไรทิ้ง (เฟส 1) · 2 = ตัดตัวที่ AI ให้ ★ เดียว (noise) ทิ้ง
-		"AI_MIN_IMPORTANCE": "0"
+		"AI_MIN_IMPORTANCE": "0",
+
+		// ---- News Radar ----
+		// เตือนทันทีเมื่อ AI ให้ผลกระทบ ≥ ค่านี้ (1-5) และมั่นใจอย่างน้อยระดับกลาง; ข่าว ≥3 ที่เหลือไปอยู่ในสรุปรายวัน
+		"NEWS_MIN_IMPACT": "4",
+		// ติดตามข่าวหุ้นเพิ่มนอก WATCHLIST (ไม่คำนวณสัญญาณราคา) — ใส่เยอะ = ข่าวเยอะ = ค่า AI สูงขึ้น
+		"NEWS_EXTRA_SYMBOLS": "QQQ,AAPL,MSFT,AMZN,GOOGL,META,AVGO,TSLA,AMD,PLTR",
+		// SEC บังคับ User-Agent "ชื่อ อีเมล" — ได้ 8-K / ออกหุ้นเพิ่ม (S-3, 424B) / ส่งงบช้า ฯลฯ ของหุ้นใน WATCHLIST
+		"SEC_USER_AGENT": "StockAlertWorker patara1919@gmail.com",
+
+		// ---- Discord slash commands (/analyze /news /heat /review) ----
+		// Public Key ของ Discord application (ไม่ใช่ความลับ) แล้วตั้ง Interactions Endpoint URL = https://<worker>/interactions
+		"DISCORD_PUBLIC_KEY": "07cbcedc9cf1619fd66d818da812aa8f3dc9afff93b6c2c38d3e99d7ce78c3c1"
+		// ถ้าเปิดบรรทัดด้านล่าง อย่าลืมเติม , ท้ายบรรทัดก่อนหน้า
+		// โมเดลคัดข่าว (ไม่ใส่ = ใช้ AI_MODEL) · "claude-haiku-5-5" ถูกกว่ามาก
+		// "NEWS_AI_MODEL": "claude-haiku-5-5",
+		// "NEWS_RADAR": "off",
+		// แยกห้อง Discord สำหรับข่าว: wrangler secret put DISCORD_NEWS_WEBHOOK_URL (ไม่ใส่ = ห้องเดิม)
+		// จำกัดคนที่ใช้ slash commands ได้ (Discord user id คั่นด้วย ,) กันคนอื่นในเซิร์ฟเวอร์ใช้ AI ของเรา
+		// "DISCORD_ALLOWED_USER_IDS": ""
 	}
 
 	/**

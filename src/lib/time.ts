@@ -6,10 +6,14 @@ const ET_FORMAT = new Intl.DateTimeFormat("en-US", {
   day: "2-digit",
   hour: "2-digit",
   minute: "2-digit",
+  weekday: "short",
   hourCycle: "h23",
 });
 
-export type EtParts = { date: string; hour: number; minute: number };
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+/** weekday: 0 = อาทิตย์ ... 6 = เสาร์ */
+export type EtParts = { date: string; hour: number; minute: number; weekday: number };
 
 export function etParts(d: Date): EtParts {
   const p: Record<string, string> = {};
@@ -18,8 +22,13 @@ export function etParts(d: Date): EtParts {
     date: `${p.year}-${p.month}-${p.day}`,
     hour: Number(p.hour),
     minute: Number(p.minute),
+    weekday: WEEKDAYS.indexOf(p.weekday),
   };
 }
+
+export const isWeekday = (et: EtParts) => et.weekday >= 1 && et.weekday <= 5;
+
+export const hhmm = (et: EtParts) => `${String(et.hour).padStart(2, "0")}:${String(et.minute).padStart(2, "0")}`;
 
 export type Slot = "midday" | "close";
 
